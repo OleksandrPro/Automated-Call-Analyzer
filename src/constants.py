@@ -15,6 +15,14 @@ class Directories:
 
     AUDIOFILES_ROOT = os.path.join(APP_DATA, "audiofiles")
 
+    GEMINI_ROOT = os.path.join(ROOT, "speech_processing", "gemini")
+
 
 class ConfigFiles:
     CREDENTIALS = create_full_path(Directories.PROJECT_ROOT, "credentials.json")
+
+    ANALYSIS_CRITERIA = create_full_path(Directories.APP_DATA, "analysis_criteria.json")
+
+
+class GeminiConfig:
+    PROMPT = create_full_path(Directories.GEMINI_ROOT, "prompt_template.txt")

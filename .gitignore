@@ -3,3 +3,5 @@ venv
 .env
 credentials.json
 *.mp3
+audiofiles/
+test.py
