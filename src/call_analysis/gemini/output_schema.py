@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from typing import List, Optional
 
 
@@ -9,12 +9,15 @@ class SpeakerTypes(Enum):
 
 
 class DialogLine(BaseModel):
+    @field_serializer("speaker")
+    def serialize_speaker(self, speaker: SpeakerTypes) -> str:
+        return speaker.value
+
     speaker: SpeakerTypes
     text: str
 
 
 class CallAnalysisResult(BaseModel):
-    """Повний результат аналізу телефонного дзвінка."""
 
     transcript: List[DialogLine] = Field(description="Повна транскрипція розмови.")
 

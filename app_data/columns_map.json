@@ -1,0 +1,18 @@
+{
+    "transcription": "A",
+    "call_type": "B",
+    "manager_name": "E",
+    "script_greeting": "F",
+    "script_farewell": "M",
+    "car_info_body_asked": "G",
+    "car_info_year_asked": "H",
+    "car_info_mileage_asked": "I",
+    "upsale_diagnostics_offered": "J",
+    "upsale_previous_work_asked": "K",
+    "service_booking_date": "L",
+    "top_works_mentioned": "N",
+    "parts_discussed": "T",
+    "call_result": "Q",
+    "comment": "U",
+    "total_score": "V"
+}

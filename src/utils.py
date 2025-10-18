@@ -64,3 +64,29 @@ def build_prompt_from_template(criteria_path: str, template_path: str) -> str:
     )
 
     return final_prompt
+
+
+def add_new_key(dictionary: dict, key: str, value=None):
+
+    if key in dictionary:
+        print(
+            f"Warning: Key '{key}' already exists in the dictionary. Value not changed."
+        )
+    else:
+        dictionary[key] = value
+        print(f"Key '{key}' successfully added with value {value}.")
+
+    return dictionary
+
+
+def add_new_key_to_dicts(dictionaries: list[dict], key: str, value=None):
+    updated_dicts = []
+    for dictionaty in dictionaries:
+        new_dict = add_new_key(dictionaty, key)
+        updated_dicts.append(new_dict)
+
+    return updated_dicts
+
+
+def evaluate_dict_responce(analysis_report_dict: dict):
+    pass
