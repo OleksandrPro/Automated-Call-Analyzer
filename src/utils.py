@@ -1,5 +1,7 @@
 import os
 import json
+import re
+from typing import Optional, Tuple
 
 
 def create_full_path(directory: str, file_name: str):
@@ -88,5 +90,30 @@ def add_new_key_to_dicts(dictionaries: list[dict], key: str, value=None):
     return updated_dicts
 
 
-def evaluate_dict_responce(analysis_report_dict: dict):
-    pass
+def get_start_end_row(updated_range: str) -> Optional[Tuple[int, int]]:
+    """
+    Args:
+        updated_range (str): example - "'Sheet1'!A9:V10".
+
+    Returns:
+        (start_row, end_row) or None.
+    """
+
+    range_part = updated_range.split("!")[-1]
+
+    match = re.search(r"[A-Z]+(\d+):[A-Z]+(\d+)", range_part)
+
+    if match:
+        start_row = int(match.group(1))
+        end_row = int(match.group(2))
+
+        return start_row, end_row
+    else:
+        single_row_match = re.search(r"[A-Z]+(\d+)$", range_part)
+        if single_row_match:
+            start_row = int(single_row_match.group(1))
+            end_row = start_row
+            return start_row, end_row
+
+    print(f"Parse error: Couldn't find rown numbers in '{updated_range}'.")
+    return None

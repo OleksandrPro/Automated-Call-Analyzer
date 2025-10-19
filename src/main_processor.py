@@ -6,10 +6,12 @@ from call_analysis.gemini.output_schema import CallAnalysisResult
 from call_analysis.gemini.gemini_transcription import transcribe_audio
 from google_drive.audio_downloader import AudioDownloader
 from google_drive.file_uploader import FileUploader
-from excel_table.google_spreadsheets.writer import GoogleSheetWriter
-from excel_table.utils import prepare_row_data
-from utils import create_full_path, read_audio_file, write_json_file
+from excel_table.google_spreadsheets.editor import GoogleSheetEditor
+from excel_table.utils import edit_transcription_view
+from utils import create_full_path, read_audio_file, write_json_file, get_start_end_row
 from call_analysis.gemini.gemini_transcription import analyze_audio_with_gemini
+from constants import TableConfig, CellBackgroundColors, RGBColor
+from gspread.utils import column_letter_to_index
 
 
 @dataclass
@@ -35,7 +37,11 @@ def return_call_analysis():
             DialogLine(
                 speaker=SpeakerTypes.CLIENT,
                 text="Transcription for {file['name']}",
-            )
+            ),
+            DialogLine(
+                speaker=SpeakerTypes.MANAGER,
+                text="Manager line",
+            ),
         ],
         call_type="Test",
         manager_name="Test",
@@ -47,11 +53,11 @@ def return_call_analysis():
         upsale_diagnostics_offered=False,
         upsale_previous_work_asked=False,
         service_booking_date="2025-10-16",
-        top_works_mentioned=["Test"],
+        top_works_mentioned=["Test", "Not Test"],
         parts_discussed=None,
         call_result="Test",
         comment="Comment for {file['name']}",
-        is_comment_negative=False,
+        is_comment_negative=True,
     )
 
     return call_analysis
@@ -70,7 +76,7 @@ def analyze_audio_files(
     audio_files: List[dict],
 ) -> List[ProcessedCall]:
     """
-    Downloads and analyzes a list of audio files. # Загружает и анализирует список аудиофайлов.
+    Downloads and analyzes a list of audio files.
     """
     processed_results = []
     for file in audio_files:
@@ -83,13 +89,12 @@ def analyze_audio_files(
 
         print("Sending file to Gemini for analysis...")
 
-        call_analysis = analyze_audio_with_gemini(
-            gemini_client, gemini_model, prompt, audio_bytes
-        )
-        print(call_analysis)
+        # call_analysis = analyze_audio_with_gemini(gemini_client, gemini_model, prompt, audio_bytes)
 
         # MOCKUP for tests
-        # call_analysis = return_call_analysis()
+        call_analysis = return_call_analysis()
+
+        print(call_analysis)
 
         # Check that the analysis was successful
         if call_analysis:
@@ -108,7 +113,7 @@ def save_transcripts_locally(
     processed_calls: List[ProcessedCall], directory: str
 ) -> List[str]:
     """
-    Saves the transcriptions, using the source audio file name. # Сохраняет транскрипции, используя исходное имя аудиофайла.
+    Saves the transcriptions, using the source audio file name.
     """
     saved_files = []
     print("\nSaving transcriptions to local files...")
@@ -132,39 +137,25 @@ def prepare_transcription_for_saving(analysis_results: List[CallAnalysisResult])
     pass
 
 
-def prepare_reports_for_writing_1(processed_calls: list):
-    rows_to_add = []
-
-    for call_report in processed_calls:
-        print(call_report)
-        row_in_table_data = prepare_row_data(call_report)
-        rows_to_add.append(row_in_table_data)
-
-    return rows_to_add
-
-
 def prepare_reports_for_writing(
-    writer: GoogleSheetWriter, analysis_reports_dicts: List[Dict[str, Any]]
+    writer: GoogleSheetEditor, analysis_reports_dicts: List[Dict[str, Any]]
 ) -> List[List[str]]:
     rows_to_add = []
 
     for report_dict in analysis_reports_dicts:
-        try:
-            prepared_row = writer._prepare_row_data(report_dict)
-            rows_to_add.append(prepared_row)
-        except Exception as e:
-            # Error handling during the preparation of a single row
-            print(f"Error preparing data for the report: {e}. Row skipped.")
-            continue
+        print(report_dict)
+        edit_transcription_view(report_dict)
+        prepared_row = writer._prepare_row_data(report_dict)
+        rows_to_add.append(prepared_row)
 
     return rows_to_add
 
 
 def write_results_to_sheet_1(
-    writer: GoogleSheetWriter, sheet_url: str, rows_to_add: List
+    writer: GoogleSheetEditor, sheet_url: str, rows_to_add: List
 ):
     """
-    Writes analysis results to a Google Sheet. # Записує результати аналізу в Google-таблицю.
+    Writes analysis results to a Google Sheet.
     """
     print("\nWriting results to Google Sheet...")
     writer.write_rows(sheet_url=sheet_url, rows_to_add=rows_to_add)
@@ -172,7 +163,7 @@ def write_results_to_sheet_1(
 
 
 def prepare_analysis_for_batch_writing(
-    writer: GoogleSheetWriter,
+    writer: GoogleSheetEditor,
     analysis_reports: List[CallAnalysisResult | Dict[str, Any]],
 ) -> List[List[str]]:
     """
@@ -202,12 +193,12 @@ def prepare_analysis_for_batch_writing(
 
 
 def write_results_to_sheet(
-    writer: GoogleSheetWriter,
+    writer: GoogleSheetEditor,
     sheet_url: str,
     analysis_reports_dicts: List[Dict[str, Any]],
 ):
     """
-    Accepts a list of dictionaries (Dict) with analysis results and writes them to a Google Sheet. # Приймає список словників (Dict) з результатами аналізу і записує їх у Google-таблицю.
+    Accepts a list of dictionaries (Dict) with analysis results and writes them to a Google Sheet.
     """
     print("\nWriting results to Google Sheet...")
 
@@ -219,16 +210,48 @@ def write_results_to_sheet(
     rows_to_add = prepare_reports_for_writing(writer, analysis_reports_dicts)
 
     # 2. Use batch writing
-    writer.write_rows(sheet_url=sheet_url, rows_to_add=rows_to_add)
+    response = writer.write_rows(sheet_url=sheet_url, rows_to_add=rows_to_add)
 
     print(f"Successfully wrote {len(rows_to_add)} rows to the table.")
+    return response
+
+
+def color_cells(editor: GoogleSheetEditor, response: dict, analysis_report_dicts):
+    updated_range = response.get("updates", {}).get("updatedRange")
+
+    if not updated_range:
+        print("Error: Response doesn't contain key 'updatedRange'.")
+        return None
+
+    start_row, end_row = get_start_end_row(updated_range)
+
+    rows = range(start_row, end_row + 1)
+    if start_row == end_row:
+        print("'rows' is empty. start_row: %s, end_row: %s", start_row, end_row)
+        return
+
+    color_sequence: list[RGBColor] = []
+    for report in analysis_report_dicts:
+        is_comment_negative = report.get(TableConfig.NEGATIVE_COMMENT)
+        color = (
+            CellBackgroundColors.RED
+            if is_comment_negative
+            else CellBackgroundColors.GREEN
+        )
+        color_sequence.append(color)
+
+    col_letter = editor.mapping.get(TableConfig.CELL_TO_COLOR)
+
+    for index, color in enumerate(color_sequence):
+        row = rows[index]
+        editor.color_cell(row, col_letter, color.red, color.green, color.blue)
 
 
 def upload_transcripts_to_drive(
     uploader: FileUploader, file_paths: List[str], folder_id: str
 ):
     """
-    Uploads local transcription files to the specified Google Drive folder. # Завантажує локальні файли транскрипцій у вказану папку на Google Диску.
+    Uploads local transcription files to the specified Google Drive folder.
     """
     print(f"\nUploading transcription files to folder '{folder_id}' on Google Drive...")
     uploader.upload_multiple_files(local_file_paths=file_paths, folder_id=folder_id)

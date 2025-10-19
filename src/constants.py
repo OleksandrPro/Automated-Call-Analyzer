@@ -44,3 +44,32 @@ class Constants:
 
 class Scopes:
     DRIVE = "https://www.googleapis.com/auth/drive"
+
+
+class RGBColor:
+    def __init__(self, red: int, green: int, blue: int):
+        if not all(value >= 0 and value <= 255 for value in [red, green, blue]):
+            raise ValueError("Each value has to be in range of 0 to 255.")
+        self.red = red
+        self.green = green
+        self.blue = blue
+
+
+class CellBackgroundColors:
+    RED = RGBColor(red=225, green=183, blue=183)
+    GREEN = RGBColor(red=201, green=225, blue=183)
+
+
+class TableConfig:
+    BOOL_TO_INT_FIELDS = [
+        "script_greeting",
+        "script_farewell",
+        "car_info_body_asked",
+        "car_info_year_asked",
+        "car_info_mileage_asked",
+        "upsale_diagnostics_offered",
+        "upsale_previous_work_asked",
+    ]
+    NEGATIVE_COMMENT = "is_comment_negative"
+    CELL_TO_COLOR = "comment"
+    TOTAL_SCORE = "total_score"

@@ -1,15 +1,19 @@
 import gspread
 import json
 from call_analysis.gemini.output_schema import CallAnalysisResult
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Tuple
 from gspread.client import Client
 from gspread.utils import column_letter_to_index
+import gspread_formatting as gsf
+from gspread.worksheet import Worksheet
+import re
 
 
-class GoogleSheetWriter:
-    def __init__(self, client: Client):
+class GoogleSheetEditor:
+    def __init__(self, client: Client, worksheet: Worksheet):
         self.client = client
         self.mapping = {}
+        self.worksheet = worksheet
         print("Authenticated with Google Sheets.")
 
     def load_mapping(self, mapping_path: str = "column_mapping.json"):
@@ -98,60 +102,33 @@ class GoogleSheetWriter:
 
         return row
 
-    def write_row(
-        self,
-        sheet_url: str,
-        data: CallAnalysisResult | Dict[str, Any],
-        sheet_name: Optional[str] = None,
-    ):
-        """
-        [MODIFIED] - Accepts either Pydantic or Dict. Internally converts Pydantic to dict
-        to use _prepare_row_data.
-        """
-        if isinstance(data, CallAnalysisResult):
-            # Convert the Pydantic model to a dictionary for unification
-            data_dict = data.model_dump()
-        else:
-            data_dict = data
-
-        try:
-            prepared_row = self._prepare_row_data(data_dict)
-
-            spreadsheet = self.client.open_by_url(sheet_url)
-            worksheet = (
-                spreadsheet.worksheet(sheet_name) if sheet_name else spreadsheet.sheet1
-            )
-            worksheet.append_row(prepared_row)
-
-            print(f"Successfully added a new row to sheet '{worksheet.title}'.")
-            return True
-
-        except Exception as e:
-            print(f"An error occurred while writing to the table: {e}")
-            return False
-
     def write_rows(
         self,
         sheet_url: str,
         rows_to_add: list[list[str]],
         sheet_name: Optional[str] = None,
     ):
+        print("test new add rows technique")
         print(f"rows_to_add: {rows_to_add}")
         try:
-            spreadsheet = self.client.open_by_url(sheet_url)
-
-            if sheet_name:
-                worksheet = spreadsheet.worksheet(sheet_name)
-            else:
-                worksheet = spreadsheet.sheet1
-
-            for row in rows_to_add:
-                print(f"row: {row}")
-                worksheet.append_row(row)
-                print(f"Successfully wrote a new row to worksheet '{worksheet.title}'.")
+            response = self.worksheet.append_rows(rows_to_add)
+            print(f"Rows addition response: {response}")
 
             print(f"All of the rows have been written successfully.")
-            return True
+            return response
         except Exception as e:
             print(f" (write_rows) An error occurred: {e}")
-            return False
+            return None
+
+    def color_cell(self, row: int, col_letter: str, red: int, green: int, blue: int):
+        cell_range = f"{col_letter}{row}"
+        self._color_cell_background(cell_range, red, green, blue)
+
+    def _color_cell_background(self, cell_range: str, red: int, green: int, blue: int):
+        # 1. Create a color object, converting 0-255 to 0.0-1.0
+        # gsf.color requires values in the range 0.0 to 1.0
+        bg_color = gsf.color(red / 255.0, green / 255.0, blue / 255.0)
+
+        fmt = gsf.cellFormat(backgroundColor=bg_color)
+
+        gsf.format_cell_range(self.worksheet, cell_range, fmt)
