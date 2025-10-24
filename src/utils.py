@@ -1,14 +1,15 @@
 import os
 import sys
 import logging
+from logging import _Level
 import json
 import re
 from typing import Optional, Tuple
 
 
-def configure_logging():
+def configure_logging(logging_level: _Level = logging.INFO):
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging_level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[logging.StreamHandler(sys.stdout)],
     )

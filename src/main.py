@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 def execute():
     logger.info("Starting analysis pipeline...")
+
+    # --- 1. Setup Google Services & Clients ---
     gemini_client = Client()
     scopes = [Scopes.DRIVE]
 
@@ -33,12 +35,14 @@ def execute():
     spreadsheet = gspread_client.open_by_url(Constants.SHEET_URL)
     worksheet = spreadsheet.sheet1
 
+    # --- 2. Setup Core Components ---
     searcher = FileSearcher(service=drive_service)
     downloader = AudioDownloader(service=drive_service)
     uploader = FileUploader(service=drive_service)
     sheet_editor = GoogleSheetEditor(client=gspread_client, worksheet=worksheet)
     sheet_editor.load_mapping(mapping_path=ConfigFiles.COLUMN_MAPPING)
 
+    # --- 3. Find Audio Files Folder ---
     audio_folder_id = Constants.AUDIOFILES_FOLDER_ID
 
     if audio_folder_id:
@@ -65,9 +69,10 @@ def execute():
             )
             return
 
+    # --- 4. List Audio Files ---
     audio_files = searcher.list_files_in_folder(audio_folder_id)
 
-    # --- 2.5 My mock for the test ---
+    # --- 4.5 My mock for the test ---
     logger.debug("--- Starting mock file filter ---")
     result_audio_files = []
     target_file_name_1 = "2024-11-13_12-57_0667131186_outgoing.mp3"
@@ -92,19 +97,19 @@ def execute():
         criteria_path=ConfigFiles.ANALYSIS_CRITERIA, template_path=GeminiConfig.PROMPT
     )
 
-    # --- 3. Setup Analysis Strategy ---
+    # --- 5. Setup Call Analysis Strategy ---
     gemini_strategy = GeminiAnalysisStrategy(
         client=gemini_client, model=GeminiConfig.MODEL, prompt=prompt
     )
 
     mock_strategy = MockAnalysisStrategy()
 
-    # --- 4. Setup Analyzer (Context) ---
+    # --- 6. Setup Analyzer (Context) ---
     # analyzer = CallAnalyzer(strategy=gemini_strategy, downloader=downloader)
     logger.info("Using MockAnalysisStrategy for analysis.")
     analyzer = CallAnalyzer(strategy=mock_strategy, downloader=downloader)
 
-    # --- 5. Run Analysis ---
+    # --- 7. Run Analysis ---
     processed_calls = analyzer.analyze_files(audio_files)
 
     if not processed_calls:
@@ -113,14 +118,14 @@ def execute():
 
     logger.debug(f"Processed calls list: {processed_calls}")
 
-    # --- 6. Run Post-Processing & Evaluation ---
+    # --- 8. Run Post-Processing & Evaluation ---
     evaluator = ReportEvaluator(processed_calls)
 
     evaluated_reports = evaluator.generate_evaluated_reports()
 
     logger.debug(f"Evaluated reports list: {evaluated_reports}")
 
-    # --- 7. Setup Result Handlers ---
+    # --- 9. Setup Result Handlers ---
     logger.info("Setting up result handlers...")
     sheet_handler = SheetResultHandler(sheet_editor)
 
@@ -130,14 +135,14 @@ def execute():
         drive_folder_id=audio_folder_id,
     )
 
-    # --- 8. Writing results to a table and cloud ---
+    # --- 10. Writing results to a table and drive ---
 
-    # 8.1. Save to Google Sheet and color cells
+    # 10.1. Save to Google Sheet and color cells
     sheet_handler.save_and_format_reports(
         reports=evaluated_reports, sheet_url=Constants.SHEET_URL
     )
 
-    # 8.2. Save and upload transcripts
+    # 10.2. Save and upload transcripts
     transcript_handler.save_and_upload_transcripts(reports=evaluated_reports)
 
     logger.info("Whole process successfully finished!")

@@ -1,7 +1,6 @@
 import logging
 from typing import List, Dict, Any
 
-# Import our new classes and old data-classes
 from .base_strategy import BaseAnalysisStrategy
 from .gemini.output_schema import CallAnalysisResult
 from google_drive.audio_downloader import AudioDownloader
@@ -11,10 +10,6 @@ from utils import configure_logging
 configure_logging()
 logger = logging.getLogger(__name__)
 
-# ---------------------------------
-# --- Data Container ---
-# ---------------------------------
-
 
 class ProcessedCall:
     """Container for storing the source file name and its analysis result."""
@@ -22,11 +17,6 @@ class ProcessedCall:
     def __init__(self, source_file_name: str, analysis: CallAnalysisResult):
         self.source_file_name = source_file_name
         self.analysis = analysis
-
-
-# ---------------------------------
-# --- 1. The "Context" Class ---
-# ---------------------------------
 
 
 class CallAnalyzer:
@@ -85,11 +75,6 @@ class CallAnalyzer:
                 logger.warning(f"Analysis of file {file_name} failed. Skipping.")
 
         return processed_results
-
-
-# ---------------------------------
-# --- 2. Post-Processing Class ---
-# ---------------------------------
 
 
 class ReportEvaluator:

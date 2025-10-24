@@ -23,17 +23,15 @@ class Directories:
 
 
 class ConfigFiles:
-    CREDENTIALS = create_full_path(Directories.PROJECT_ROOT, "credentials.json")
+    CREDENTIALS = create_full_path(Directories.APP_DATA, "credentials.json")
 
     ANALYSIS_CRITERIA = create_full_path(Directories.APP_DATA, "analysis_criteria.json")
 
     COLUMN_MAPPING = create_full_path(Directories.APP_DATA, "columns_map.json")
 
-    CLIENT_SECRET_FILE = create_full_path(
-        Directories.PROJECT_ROOT, "client_secret.json"
-    )
+    CLIENT_SECRET_FILE = create_full_path(Directories.APP_DATA, "client_secret.json")
 
-    TOKEN_FILE = create_full_path(Directories.PROJECT_ROOT, "token.json")
+    TOKEN_FILE = create_full_path(Directories.APP_DATA, "token.json")
 
 
 class GeminiConfig:
