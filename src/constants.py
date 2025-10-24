@@ -15,7 +15,11 @@ class Directories:
 
     AUDIOFILES_ROOT = os.path.join(APP_DATA, "audiofiles")
 
-    GEMINI_ROOT = os.path.join(ROOT, "call_analysis", "gemini")
+    ANALYSIS_STRATEGIES_ROOT = os.path.join(
+        ROOT, "call_analysis", "analysis_strategies"
+    )
+
+    GEMINI_ROOT = os.path.join(ANALYSIS_STRATEGIES_ROOT, "gemini")
 
 
 class ConfigFiles:
@@ -39,6 +43,7 @@ class GeminiConfig:
 
 class Constants:
     TARGET_FOLDER_NAME = os.getenv("GOOGLE_DRIVE_CALLS_FOLDER_NAME")
+    TRANSCRIPT_FOLDER_ID = os.getenv("GOOGLE_DRIVE_TRANSCRIPT_FOLDER_ID")
     SHEET_URL = os.getenv("TABLE_URL")
 
 

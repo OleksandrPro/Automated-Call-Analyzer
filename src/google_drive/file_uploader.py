@@ -1,8 +1,13 @@
+import logging
 import os
 import mimetypes
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 from typing import List, Optional, Any
+from utils import configure_logging
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 
 class FileUploader:
@@ -16,7 +21,7 @@ class FileUploader:
     ) -> Optional[str]:
 
         if not os.path.exists(local_file_path):
-            print(f"Local file not found: {local_file_path}")
+            logger.warning(f"Local file not found: {local_file_path}")
             return None
 
         try:
@@ -43,11 +48,11 @@ class FileUploader:
             )
 
             file_id = uploaded_file.get("id")
-            print(f"File '{drive_filename}' successfully uploaded. ID: {file_id}")
+            logger.info(f"File '{drive_filename}' successfully uploaded. ID: {file_id}")
             return file_id
 
         except HttpError as error:
-            print(
+            logger.error(
                 f"An API error occurred while uploading file '{local_file_path}': {error}"
             )
             return None
@@ -65,14 +70,16 @@ class FileUploader:
         Returns:
             List of IDs of all successfully uploaded files.
         """
-
+        logger.info(
+            f"Starting upload of {len(local_file_paths)} files to folder {folder_id}..."
+        )
         uploaded_ids = []
         for path in local_file_paths:
             file_id = self.upload_file(local_file_path=path, folder_id=folder_id)
             if file_id:
                 uploaded_ids.append(file_id)
 
-        print(
-            f"\nUpload complete. Successfully uploaded {len(uploaded_ids)} out of {len(local_file_paths)} files."
+        logger.info(
+            f"Upload complete. Successfully uploaded {len(uploaded_ids)} out of {len(local_file_paths)} files."
         )
         return uploaded_ids

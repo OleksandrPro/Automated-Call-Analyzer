@@ -1,12 +1,16 @@
-import gspread
+import logging
 import json
-from call_analysis.gemini.output_schema import CallAnalysisResult
-from typing import List, Optional, Any, Dict, Tuple
+from call_analysis.analysis_strategies.gemini.output_schema import CallAnalysisResult
+from typing import Optional, Any
 from gspread.client import Client
 from gspread.utils import column_letter_to_index
 import gspread_formatting as gsf
 from gspread.worksheet import Worksheet
-import re
+from constants import ConfigFiles
+from utils import configure_logging
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 
 class GoogleSheetEditor:
@@ -14,12 +18,12 @@ class GoogleSheetEditor:
         self.client = client
         self.mapping = {}
         self.worksheet = worksheet
-        print("Authenticated with Google Sheets.")
+        logger.info("Authenticated with Google Sheets.")
 
-    def load_mapping(self, mapping_path: str = "column_mapping.json"):
+    def load_mapping(self, mapping_path: str = ConfigFiles.COLUMN_MAPPING):
         with open(mapping_path, "r", encoding="utf-8") as f:
             self.mapping = json.load(f)
-        print(f"Column mapping loaded from {mapping_path}.")
+        logger.info(f"Column mapping loaded from {mapping_path}.")
 
     def prepare_row_data(self, data: CallAnalysisResult) -> list:
         """
@@ -39,7 +43,6 @@ class GoogleSheetEditor:
                 max_col_num = col_num
 
         # 2. Create an empty row (a list of empty strings) of the required length.
-        # For example, if max_col_num = 21 (for 'U'), it will create ['', '', ..., ''] (21 elements).
         row = [""] * max_col_num
 
         # 3. Fill this row with data from the Pydantic object.
@@ -85,15 +88,13 @@ class GoogleSheetEditor:
         for field, col_letter in self.mapping.items():
             # Get the column index
             col_index = column_letter_to_index(col_letter) - 1
-            # Get the field value from the dictionary. Use .get() to avoid errors
-            # if the field is not in the dictionary.
+            # Get the field value from the dictionary.
             value = data.get(field)
 
             # 4. Convert the value to a string suitable for the cell.
             if isinstance(value, bool):
                 row[col_index] = "1" if value else "0"
             elif isinstance(value, list):
-                # For a list, join elements with a comma
                 row[col_index] = ", ".join(map(str, value))
             elif value is None:
                 row[col_index] = ""
@@ -108,16 +109,16 @@ class GoogleSheetEditor:
         rows_to_add: list[list[str]],
         sheet_name: Optional[str] = None,
     ):
-        print("test new add rows technique")
-        print(f"rows_to_add: {rows_to_add}")
+        logger.debug("Using 'append_rows' method.")
+        logger.debug(f"Rows to add: {rows_to_add}")
         try:
             response = self.worksheet.append_rows(rows_to_add)
-            print(f"Rows addition response: {response}")
+            logger.debug(f"Rows addition response: {response}")
 
-            print(f"All of the rows have been written successfully.")
+            logger.info(f"All of the rows have been written successfully.")
             return response
         except Exception as e:
-            print(f" (write_rows) An error occurred: {e}")
+            logger.error(f" (write_rows) An error occurred: {e}")
             return None
 
     def color_cell(self, row: int, col_letter: str, red: int, green: int, blue: int):
@@ -126,7 +127,6 @@ class GoogleSheetEditor:
 
     def _color_cell_background(self, cell_range: str, red: int, green: int, blue: int):
         # 1. Create a color object, converting 0-255 to 0.0-1.0
-        # gsf.color requires values in the range 0.0 to 1.0
         bg_color = gsf.color(red / 255.0, green / 255.0, blue / 255.0)
 
         fmt = gsf.cellFormat(backgroundColor=bg_color)

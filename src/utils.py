@@ -1,7 +1,17 @@
 import os
+import sys
+import logging
 import json
 import re
 from typing import Optional, Tuple
+
+
+def configure_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
 
 
 def create_full_path(directory: str, file_name: str):
@@ -40,32 +50,6 @@ def write_json_file(input_data: list[dict], output_file_path: str):
             default=lambda x: list(x) if isinstance(x, tuple) else str(x),
             ensure_ascii=False,
         )
-
-
-def build_prompt_from_template(criteria_path: str, template_path: str) -> str:
-    """
-    Loads criteria from a JSON file and a prompt from a text file,
-    then injects the criteria into the prompt template.
-    """
-
-    criteria = read_json(criteria_path)
-    prompt_template = read_file(template_path)
-
-    # 3. Format the lists from the criteria into simple text strings
-    top_works_str = _format_list(criteria["top_works"])
-    call_types_str = _format_list(criteria["call_types"])
-    call_results_str = _format_list(criteria["call_results"])
-    parts_discussed_str = _format_list(criteria["parts_discussed"])
-
-    # 4. Use an f-string to inject the formatted strings into the template
-    final_prompt = prompt_template.format(
-        top_works_list=top_works_str,
-        call_types_list=call_types_str,
-        call_results_list=call_results_str,
-        parts_discussed_list=parts_discussed_str,
-    )
-
-    return final_prompt
 
 
 def add_new_key(dictionary: dict, key: str, value=None):
