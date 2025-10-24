@@ -39,14 +39,33 @@ def execute():
     sheet_editor = GoogleSheetEditor(client=gspread_client, worksheet=worksheet)
     sheet_editor.load_mapping(mapping_path=ConfigFiles.COLUMN_MAPPING)
 
-    folder_id = searcher.get_folder_id(Constants.TARGET_FOLDER_NAME)
-    if not folder_id:
-        logger.error(
-            f"Process stopped: folder '{Constants.TARGET_FOLDER_NAME}' not found."
-        )
-        return
+    audio_folder_id = Constants.AUDIOFILES_FOLDER_ID
 
-    audio_files = searcher.list_files_in_folder(folder_id)
+    if audio_folder_id:
+        logger.info(
+            f"Using direct folder ID from AUDIOFILES_FOLDER_ID: {audio_folder_id}"
+        )
+    else:
+        logger.warning(
+            "AUDIOFILES_FOLDER_ID is not set. Falling back to search by AUDIOFILES_FOLDER_NAME."
+        )
+
+        folder_name = Constants.AUDIOFILES_FOLDER_NAME
+        if not folder_name:
+            logger.error(
+                "Process stopped: Neither AUDIOFILES_FOLDER_ID nor AUDIOFILES_FOLDER_NAME environment variables are set."
+            )
+            return
+
+        audio_folder_id = searcher.get_folder_id(folder_name)
+
+        if not audio_folder_id:
+            logger.error(
+                f"Process stopped: Folder '{folder_name}' not found on Google Drive."
+            )
+            return
+
+    audio_files = searcher.list_files_in_folder(audio_folder_id)
 
     # --- 2.5 My mock for the test ---
     logger.debug("--- Starting mock file filter ---")
@@ -108,7 +127,7 @@ def execute():
     transcript_handler = TranscriptHandler(
         uploader=uploader,
         local_save_directory=Directories.AUDIOFILES_ROOT,
-        drive_folder_id=folder_id,
+        drive_folder_id=audio_folder_id,
     )
 
     # --- 8. Writing results to a table and cloud ---
@@ -126,4 +145,10 @@ def execute():
 
 if __name__ == "__main__":
     configure_logging()
-    execute()
+    try:
+        logger.info("Application starting...")
+        execute()
+        logger.info("Application finished successfully.")
+
+    except Exception as e:
+        logger.exception("An unhandled exception occurred. Process stopped.")
