@@ -108,10 +108,20 @@ def execute():
     logger.info("Setting up result handlers...")
     sheet_handler = SheetResultHandler(sheet_editor)
 
+    transcript_folder_id = Constants.TRANSCRIPTION_FOLDER_ID
+
+    if transcript_folder_id:
+        logger.info(f"Using separate folder for transcripts: {transcript_folder_id}")
+    else:
+        logger.info(
+            "TRANSCRIPTION_FOLDER_ID not set. Defaulting to audio files folder."
+        )
+        transcript_folder_id = audio_folder_id
+
     transcript_handler = TranscriptHandler(
         uploader=uploader,
         local_save_directory=Directories.AUDIOFILES_ROOT,
-        drive_folder_id=audio_folder_id,
+        drive_folder_id=transcript_folder_id,
     )
 
     # --- 10. Writing results to a table and drive ---

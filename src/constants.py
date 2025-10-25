@@ -23,8 +23,6 @@ class Directories:
 
 
 class ConfigFiles:
-    CREDENTIALS = create_full_path(Directories.APP_DATA, "credentials.json")
-
     ANALYSIS_CRITERIA = create_full_path(Directories.APP_DATA, "analysis_criteria.json")
 
     COLUMN_MAPPING = create_full_path(Directories.APP_DATA, "columns_map.json")
@@ -43,6 +41,7 @@ class Constants:
     AUDIOFILES_FOLDER_NAME = os.getenv("GOOGLE_DRIVE_AUDIOFILES_FOLDER_NAME")
     AUDIOFILES_FOLDER_ID = os.getenv("GOOGLE_DRIVE_AUDIOFILES_FOLDER_ID")
     SHEET_URL = os.getenv("TABLE_URL")
+    TRANSCRIPTION_FOLDER_ID = os.getenv("GOOGLE_DRIVE_TRANSCRIPTION_FOLDER_ID")
 
 
 class Scopes:
