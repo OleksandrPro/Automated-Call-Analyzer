@@ -11,7 +11,6 @@ from google_drive.file_uploader import FileUploader
 from call_analysis.analysis_strategies.gemini.gemini_strategy import (
     GeminiAnalysisStrategy,
 )
-from call_analysis.analysis_strategies.mock_strategy import MockAnalysisStrategy
 from call_analysis.analysis_strategies.analysis_processor import (
     CallAnalyzer,
     ReportEvaluator,
@@ -72,22 +71,6 @@ def execute():
     # --- 4. List Audio Files ---
     audio_files = searcher.list_files_in_folder(audio_folder_id)
 
-    # --- 4.5 My mock for the test ---
-    logger.debug("--- Starting mock file filter ---")
-    result_audio_files = []
-    target_file_name_1 = "2024-11-13_12-57_0667131186_outgoing.mp3"
-    target_file_name_2 = "2025-07-14_14-48_0974747746_incoming.mp3"
-    mocked_audio_files = [target_file_name_1, target_file_name_2]
-    for audio_data in audio_files:
-        audio_name = audio_data.get("name")
-        logger.debug(f"Mock filter: checking file {audio_name}")
-        if audio_name in mocked_audio_files:
-            result_audio_files.append(audio_data)
-
-    audio_files = result_audio_files
-    logger.debug(f"--- Mock filter finished. Using {len(audio_files)} files. ---")
-    # --- Mock end ---
-
     if not audio_files:
         logger.warning("No files for processing in the folder.")
         return
@@ -102,12 +85,8 @@ def execute():
         client=gemini_client, model=GeminiConfig.MODEL, prompt=prompt
     )
 
-    mock_strategy = MockAnalysisStrategy()
-
     # --- 6. Setup Analyzer (Context) ---
-    # analyzer = CallAnalyzer(strategy=gemini_strategy, downloader=downloader)
-    logger.info("Using MockAnalysisStrategy for analysis.")
-    analyzer = CallAnalyzer(strategy=mock_strategy, downloader=downloader)
+    analyzer = CallAnalyzer(strategy=gemini_strategy, downloader=downloader)
 
     # --- 7. Run Analysis ---
     processed_calls = analyzer.analyze_files(audio_files)
